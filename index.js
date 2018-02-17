@@ -14,23 +14,64 @@ function exec(command,callback){
   resQueue[localSyn] = callback
 }
 
+const unescape = (str) => str.replace(new RegExp(/({{PERIOD}})/, 'g'), '.')
 
 child.stdout.on('data', (data) => {
-  const res = data.toString().trim().split('.')
-  const ack = res[0]
-  res.splice(0,1)
 
-  resQueue[ack](res)
+  try{
+    const out = data.toString().trim().split('.')
+    if(out.length === 0){
+      throw new Error('Unexpected output')
+    }
+
+    const ack = out[0]
+
+    let err = null
+    const errText = unescape(out[1])
+    if(errText !== ''){
+      err = new Error(errText)
+    }
+
+    const msg = JSON.parse(unescape(out[2]))
+
+    resQueue[ack](err,msg)
+
+  }
+  catch(e){
+    console.error(e)
+    console.error('Unexpected Python Output:',data.toString())
+  }
+
 })
 
-exec('chromecasts',(res)=>{
-  console.log('The cast is now: ' + res)
+exec('all',(err,chromecasts)=>{
+  if(err) {
+    console.log(err)
+    return
+  }
+  console.log('The cast is now: ', chromecasts)
 })
 
-exec('setCast.Office',(res)=>{
-  console.log('Set cast: ' + res)
+exec('set.Office',(err,res)=>{
+  if(err) {
+    console.log(err)
+    return
+  }
+  console.log('Set cast: ', res)
 })
 
-exec('nowPlaying',(res)=>{
-  console.log('nowPlaying: ' + res)
+exec('status',(err,status)=>{
+  if(err) {
+    console.log(err)
+    return
+  }
+  console.log('Status: ', status)
+})
+
+exec('pause',(err,status)=>{
+  if(err) {
+    console.log(err)
+    return
+  }
+  console.log('Status: ', status)
 })
