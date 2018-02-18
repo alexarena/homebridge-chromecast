@@ -5,7 +5,6 @@ import time
 import re
 
 chromecasts = pychromecast.get_chromecasts()
-cast = None
 
 
 #todo: refactor these to some type of for all in loop
@@ -38,44 +37,72 @@ def mediaStatusAsJSON(mcIn):
     }
     return json.dumps(mcAsJSON)
 
-
 def getChromecasts(args):
     return json.dumps([cc.device.friendly_name for cc in chromecasts])
 
-def setCast(args):
-    global cast
-    if(len(args) < 1):
-        raise ValueError('Not enough args to setCast method.')
-
-    cast = next(cc for cc in chromecasts if cc.device.friendly_name == args[0])
-    cast.wait()
-    device = castToJSON(cast)
-    return json.dumps({'success':True,'device':device})
+def getChromecastByName(name):
+    try:
+        cast = next(cc for cc in chromecasts if cc.device.friendly_name == name)
+        cast.wait()
+        return cast
+    except:
+        raise ValueError('There is no Chromecast with that name.')
 
 def pause(args):
+
+    if(len(args) < 1):
+        raise ValueError('The first argument must be a Chromecast name.')
+
+    cast = getChromecastByName(args[0])
     mc = cast.media_controller
     mc.pause()
     return mediaStatusAsJSON(mc)
 
 def play(args):
+
+    if(len(args) < 1):
+        raise ValueError('The first argument must be a Chromecast name.')
+
+    cast = getChromecastByName(args[0])
     mc = cast.media_controller
     mc.play()
     return mediaStatusAsJSON(mc)
 
 def volumeUp(args):
-    cast.set_volume(cast.status.volume_level+0.1)
+
+    if(len(args) < 1):
+        raise ValueError('The first argument must be a Chromecast name.')
+    cast = getChromecastByName(args[0])
+
+    cast.set_volume(cast.status.volume_level+0.05)
+    return json.dumps({'volume':cast.status.volume_level})
+
+def volumeDown(args):
+
+    if(len(args) < 1):
+        raise ValueError('The first argument must be a Chromecast name.')
+    cast = getChromecastByName(args[0])
+
+    cast.set_volume(cast.status.volume_level-0.05)
     return json.dumps({'volume':cast.status.volume_level})
 
 def status(args):
-    return json.dumps({'playing':cast.status.status_text})
+
+    if(len(args) < 1):
+        raise ValueError('The first argument must be a Chromecast name.')
+    cast = getChromecastByName(args[0])
+    mc = cast.media_controller
+    mcJSON = mediaStatusAsJSON(mc)
+    
+    return mcJSON
 
 commands = {
     "all": getChromecasts,
     "status": status,
-    "set": setCast,
     "pause": pause,
     "play": play,
-    "volumeUp": volumeUp
+    "volumeUp": volumeUp,
+    "volumeDown": volumeDown
 }
 
 def output(ack,error,result):
