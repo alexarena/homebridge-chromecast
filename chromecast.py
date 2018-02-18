@@ -3,6 +3,7 @@ import pychromecast
 import json
 import time
 import re
+import logging
 
 chromecasts = pychromecast.get_chromecasts()
 
@@ -86,6 +87,31 @@ def volumeDown(args):
     cast.set_volume(cast.status.volume_level-0.05)
     return json.dumps({'volume':cast.status.volume_level})
 
+def setVol(args):
+
+    if(len(args) < 2):
+        raise ValueError('The first argument must be a Chromecast name and the second must be volume')
+    cast = getChromecastByName(args[0])
+
+    vol = float(args[1])
+    fracVol = vol/100
+
+    cast.set_volume(fracVol)
+    time.sleep(0.01)
+
+    volOutOf100 = round(cast.status.volume_level*100)
+
+    return json.dumps({'volume':volOutOf100})
+
+def getVol(args):
+
+    if(len(args) < 1):
+        raise ValueError('The first argument must be a Chromecast name.')
+    cast = getChromecastByName(args[0])
+
+    volOutOf100 = round(cast.status.volume_level*100)
+    return json.dumps({'volume':volOutOf100})
+
 def status(args):
 
     if(len(args) < 1):
@@ -101,6 +127,8 @@ commands = {
     "status": status,
     "pause": pause,
     "play": play,
+    "setVol": setVol,
+    "getVol":getVol,
     "volumeUp": volumeUp,
     "volumeDown": volumeDown
 }
@@ -130,6 +158,7 @@ while not False:
             res = commands[cmd](args)
             sys.stdout.write(output(ack,"",res))
         except Exception as e:
+            logging.exception("Something awful happened!")
             sys.stdout.write(output(ack,str(e),""))
 
     except:

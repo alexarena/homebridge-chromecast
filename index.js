@@ -1,17 +1,25 @@
 let Service, Characteristic
 
 const Interop = require('./interop')
-const python = new Interop('python','/Users/alex/Dropbox/homebridge-chromecast/chromecast.py')
+
+let python = null
+let PLAYER_NAME = null
 
 module.exports = function(homebridge){
   Service = homebridge.hap.Service
   Characteristic = homebridge.hap.Characteristic
+
   homebridge.registerAccessory("chromecast","Chromecast",chromecast)
 
 }
 
 function chromecast(log,config){
+
+  python = new Interop('python',config.py_path)
+  PLAYER_NAME = config.name
+
   this.log = log
+  this.volumeService = new Service.Lightbulb(PLAYER_NAME+" Volume" , "volumeService");
 }
 
 chromecast.prototype = {
@@ -23,48 +31,70 @@ chromecast.prototype = {
       .setCharacteristic(Characteristic.Model, "Chromecast")
       .setCharacteristic(Characteristic.SerialNumber, "0000")
 
-    let switchService = new Service.Switch("Whole Home")
+    this.volumeService
+      .getCharacteristic(Characteristic.On)
+      .on('get', this.getPlayPauseStatus.bind(this))
+      .on('set', this.setPlayOrPause.bind(this))
 
-    switchService.getCharacteristic(Characteristic.On)
-      .on('get',this.getSwitchOnCharacteristic.bind(this))
-      .on('set',this.setSwitchOnCharacteristic.bind(this))
+    this.volumeService
+      .addCharacteristic(new Characteristic.Brightness())
+      .on('get', this.getVolume.bind(this))
+      .on('set', this.setVolume.bind(this))
 
     this.informationService = infoService
-    this.switchService = switchService
-    return [infoService, switchService]
+
+    return [this.informationService,this.volumeService]
   },
 
-  getSwitchOnCharacteristic: function (next) {
+  setVolume: function (level,callback){
+    this.log('Set vol to: ' + level)
 
-    console.log("Called")
+    python.cmd('setVol.'+PLAYER_NAME+'.'+level,(err,vol)=>{
+      if(err) {
+        console.log(err)
+        return callback(null,0)
+      }
 
-    python.cmd('status.Whole Home',(err,status)=>{
+      this.log('Success! Vol is: ' + vol.volume)
+      return callback(null,level)
+    })
+
+  },
+
+
+  getVolume: function (callback){
+    this.log('Get volume')
+    python.cmd('getVol.'+PLAYER_NAME,(err,vol)=>{
+      if(err) {
+        console.log(err)
+        return callback(null,false)
+      }
+      callback(null,vol.volume)
+    })
+
+  },
+
+  getPlayPauseStatus: function (next) {
+
+    this.log("gettingPlayPauseStatus")
+
+    python.cmd('status.'+PLAYER_NAME,(err,status)=>{
       if(err) {
         console.log(err)
         return next(null,false)
       }
-      const isPaused = (status.player_state === 'PAUSED')
-      console.log("Player status: " + status.player_state)
-      return next(null,isPaused)
+      const isPlaying = (status.player_state === 'PLAYING')
+      this.log("Player State: " + status.player_state)
+      return next(null,isPlaying)
     })
-
-    //return next(null,true)
-
-    // setInterval(()=>{
-    //   python.cmd('status.Whole Home',(err,status)=>{
-    //     if(err) {
-    //       console.log(err)
-    //     }
-    //     console.log(status)
-    //   })
-    // },5000)
 
   },
 
-  setSwitchOnCharacteristic: function (play,next){
-    console.log('TARGET STATE: ' + play)
+  setPlayOrPause: function (play,next){
 
-    const playPauseCmd = play ? 'play.Whole Home' : 'pause.Whole Home'
+    this.log('Set to play? ' + play)
+
+    const playPauseCmd = play ? `play.${PLAYER_NAME}` : `pause.${PLAYER_NAME}`
 
     python.cmd(playPauseCmd,(err,status)=>{
       if(err) {
@@ -74,19 +104,3 @@ chromecast.prototype = {
     })
   }
 }
-
-// exec('status.Whole Home',(err,status)=>{
-//   if(err) {
-//     console.log(err)
-//     return
-//   }
-//   console.log('Status: ', status)
-// })
-//
-// exec('pause.Whole Home',(err,status)=>{
-//   if(err) {
-//     console.log(err)
-//     return
-//   }
-//   console.log('Status: ', status)
-// })
