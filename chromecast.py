@@ -93,7 +93,7 @@ def status(args):
     cast = getChromecastByName(args[0])
     mc = cast.media_controller
     mcJSON = mediaStatusAsJSON(mc)
-    
+
     return mcJSON
 
 commands = {
@@ -116,20 +116,25 @@ while not False:
     if not line:
         break
 
-    trimmed = line.strip()
-    args = trimmed.split('.')
-
-    ack = args[0]
-    cmd = args[1]
-
-    args.remove(cmd)
-    args.remove(ack)
-
     try:
-        res = commands[cmd](args)
-        sys.stdout.write(output(ack,"",res))
-    except Exception as e:
-        sys.stdout.write(output(ack,str(e),""))
+        trimmed = line.strip()
+        args = trimmed.split('.')
+
+        ack = args[0]
+        cmd = args[1]
+
+        args.remove(cmd)
+        args.remove(ack)
+
+        try:
+            res = commands[cmd](args)
+            sys.stdout.write(output(ack,"",res))
+        except Exception as e:
+            sys.stdout.write(output(ack,str(e),""))
+
+    except:
+        sys.stdout.write("BadCommandFormatError")
+
     sys.stdout.flush()
     #Introduce a small wait so Node interprets each command as a different event.
     time.sleep(0.001)

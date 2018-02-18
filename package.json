@@ -1,0 +1,25 @@
+{
+  "name": "homebridge-chromecast",
+  "version": "0.5.0",
+  "description": "A homebridge plugin to Control Chromecast Devices",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "homebridge": ">=0.2.5"
+  },
+  "keywords": [
+    "homebridge-plugin"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexarena/homebridge-chromecast.git"
+  },
+  "author": "Alex Arena",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/alexarena/homebridge-chromecast/issues"
+  },
+  "homepage": "https://github.com/alexarena/homebridge-chromecast#readme"
+}
